@@ -1,0 +1,3 @@
+import os
+
+AZURE_SQL_DATABASE_CONN_STR = os.getenv("AZURE_SQL_DATABASE_CONN_STR")
