@@ -68,16 +68,32 @@ async def insert_session_metrics(
         sqlstate = ex.args[0]
         if sqlstate == '28000': # Authentication error
             logger.error(f"SQL Authentication Error: {ex}")
-            raise HTTPException(status_code=401, detail=f"Authentication failed for SQL Database. Please check your credentials. Error: {ex}")
+            return {
+                "status": "error",
+                "code": 401,
+                "message": f"Authentication failed for SQL Database. Please check your credentials. Error: {ex}"
+            }
         else:
             logger.error(f"SQL Database error during insertion: {ex}")
-            raise HTTPException(status_code=500, detail=f"Database insertion failed: {ex}")
+            return {
+                "status": "error",
+                "code": 500,
+                "message": f"Database insertion failed: {ex}"
+            }
     except ValueError as ve:
         logger.error(f"Configuration error: {ve}")
-        raise HTTPException(status_code=500, detail=f"Server configuration error: {ve}")
+        return {
+            "status": "error",
+            "code": 500,
+            "message": f"Server configuration error: {ve}"
+        }
     except Exception as e:
         logger.error(f"An unexpected error occurred: {e}")
-        raise HTTPException(status_code=500, detail=f"An unexpected error occurred: {e}")
+        return {
+            "status": "error",
+            "code": 500,
+            "message": f"An unexpected error occurred: {e}"
+        }
     finally:
         if conn:
             conn.close() # Ensure the connection is closed
