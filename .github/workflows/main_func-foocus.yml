@@ -35,6 +35,6 @@ jobs:
       with:
         app-name: 'func-foocus'
         package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_C54527856181435C9A413D3BA99B4F91E }}
+        publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
         scm-do-build-during-deployment: true
         enable-oryx-build: true
