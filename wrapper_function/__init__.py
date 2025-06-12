@@ -20,8 +20,10 @@ async def insert_session_metrics(
     saved_at = datetime.now()
     user_id = session_metrics.user_id
     username = session_metrics.username
-    start_time = session_metrics.start_time
-    end_time = session_metrics.end_time
+    start_time = datetime.strptime(session_metrics.start_time, "%Y-%m-%d %H:%M:%S.%f")
+    end_time = datetime.strptime(session_metrics.end_time, "%Y-%m-%d %H:%M:%S.%f")
+    # start_time = session_metrics.start_time
+    # end_time = session_metrics.end_time
     active_duration = session_metrics.active_duration
     pause_duration = session_metrics.pause_duration
     attention_span = session_metrics.attention_span
@@ -42,6 +44,7 @@ async def insert_session_metrics(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
+        datetime.strptime(dt_string, "%Y-%m-%d %H:%M:%S.%f")
         cursor.execute(
             insert_query,
             session_id,
