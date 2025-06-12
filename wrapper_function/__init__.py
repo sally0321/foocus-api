@@ -35,7 +35,7 @@ async def insert_session_metrics(
         cursor = conn.cursor()
 
         insert_query = """
-            INSERT INTO YourTableName (
+            INSERT INTO session_metrics (
                 session_id, saved_at, user_id, username, start_time, end_time,
                 active_duration, pause_duration, attention_span, frequency_unfocus,
                 focus_duration, unfocus_duration
