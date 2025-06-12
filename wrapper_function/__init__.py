@@ -44,7 +44,6 @@ async def insert_session_metrics(
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
 
-        datetime.strptime(dt_string, "%Y-%m-%d %H:%M:%S.%f")
         cursor.execute(
             insert_query,
             session_id,
