@@ -2,7 +2,7 @@ from pydantic import BaseModel
 
 class SessionMetrics(BaseModel):
     session_id: str
-    user_id: int
+    user_id: str
     username: str
     start_time: str
     end_time: str
