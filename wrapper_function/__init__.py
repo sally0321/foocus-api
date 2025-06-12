@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 from fastapi import FastAPI, Header, HTTPException
@@ -22,8 +22,6 @@ async def insert_session_metrics(
     username = session_metrics.username
     start_time = datetime.strptime(session_metrics.start_time, "%Y-%m-%d %H:%M:%S.%f")
     end_time = datetime.strptime(session_metrics.end_time, "%Y-%m-%d %H:%M:%S.%f")
-    # start_time = session_metrics.start_time
-    # end_time = session_metrics.end_time
     active_duration = session_metrics.active_duration
     pause_duration = session_metrics.pause_duration
     attention_span = session_metrics.attention_span
@@ -101,3 +99,84 @@ async def insert_session_metrics(
             conn.close() # Ensure the connection is closed
 
 
+@app.get("/weekly-top5-attention-span")
+async def get_weekly_top5_attention_span():
+    conn = None
+    try:
+        conn = pyodbc.connect(AZURE_SQL_DATABASE_CONN_STR)
+        cursor = conn.cursor()
+
+        # Get top 5 users with highest attention span in the current week
+        query = """
+            SELECT TOP 5 
+                user_id,
+                username,
+                AVG(CAST(attention_span AS FLOAT)) as avg_attention_span,
+                COUNT(*) as session_count
+            FROM session_metrics 
+            WHERE start_time >= DATEADD(week, DATEDIFF(week, 0, GETDATE()), 0)
+            AND start_time < DATEADD(week, DATEDIFF(week, 0, GETDATE()) + 1, 0)
+            GROUP BY user_id, username
+            HAVING COUNT(*) > 0
+            ORDER BY avg_attention_span DESC
+        """
+
+        cursor.execute(query)
+        results = cursor.fetchall()
+
+        # Convert results to list of dictionaries
+        top5_users = []
+        for row in results:
+            top5_users.append({
+                "user_id": row[0],
+                "username": row[1],
+                "avg_attention_span": round(float(row[2]), 1),
+                # "session_count": row[3]
+            })
+
+        logger.info(f"Successfully retrieved weekly top 5 attention span data. Found {len(top5_users)} users.")
+
+        return {
+            "status": "success",
+            "data": {
+                "week_period": {
+                    "start": (datetime.now() - timedelta(days=datetime.now().weekday())).strftime("%Y-%m-%d"),
+                    "end": (datetime.now() + timedelta(days=6-datetime.now().weekday())).strftime("%Y-%m-%d")
+                },
+                "top5_users": top5_users
+            }
+        }
+
+    except pyodbc.Error as e:
+        sqlstate = e.args[0]
+        if sqlstate == '28000':  # Authentication error
+            logger.error(f"SQL Authentication Error: {e}")
+            return {
+                "status": "error",
+                "code": 401,
+                "message": f"Authentication failed for SQL Database. Please check your credentials. Error: {e}"
+            }
+        else:
+            logger.error(f"SQL Database error during query: {e}")
+            return {
+                "status": "error",
+                "code": 500,
+                "message": f"Database query failed: {e}"
+            }
+    except ValueError as e:
+        logger.error(f"Configuration error: {e}")
+        return {
+            "status": "error",
+            "code": 500,
+            "message": f"Server configuration error: {e}"
+        }
+    except Exception as e:
+        logger.error(f"An unexpected error occurred: {e}")
+        return {
+            "status": "error",
+            "code": 500,
+            "message": f"An unexpected error occurred: {e}"
+        }
+    finally:
+        if conn:
+            conn.close()  # Ensure the connection is closed
