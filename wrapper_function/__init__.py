@@ -114,8 +114,8 @@ async def get_weekly_top5_attention_span():
                 AVG(CAST(attention_span AS FLOAT)) as avg_attention_span,
                 COUNT(*) as session_count
             FROM session_metrics 
-            WHERE start_time >= DATEADD(week, DATEDIFF(week, 0, GETDATE()), 0)
-            AND start_time < DATEADD(week, DATEDIFF(week, 0, GETDATE()) + 1, 0)
+            WHERE start_time >= (DATEADD(week, DATEDIFF(week, 0, GETDATE()), 0) - 1)
+            AND start_time < (DATEADD(week, DATEDIFF(week, 0, GETDATE()) + 1, 0) - 1)
             GROUP BY user_id, username
             HAVING COUNT(*) > 0
             ORDER BY avg_attention_span DESC
@@ -136,12 +136,18 @@ async def get_weekly_top5_attention_span():
 
         logger.info(f"Successfully retrieved weekly top 5 attention span data. Found {len(top5_users)} users.")
 
+        # Align with SQL: week starts on Sunday and ends on Saturday
+        today = datetime.now()
+        days_since_sunday = (today.weekday() + 1) % 7  
+        sunday = today - timedelta(days=days_since_sunday)
+        saturday = sunday + timedelta(days=6)
+
         return {
             "status": "success",
             "data": {
                 "week_period": {
-                    "start": (datetime.now() - timedelta(days=datetime.now().weekday())).strftime("%Y-%m-%d"),
-                    "end": (datetime.now() + timedelta(days=6-datetime.now().weekday())).strftime("%Y-%m-%d")
+                    "start": sunday.strftime("%Y-%m-%d"),
+                    "end": saturday.strftime("%Y-%m-%d")
                 },
                 "top5_users": top5_users
             }
