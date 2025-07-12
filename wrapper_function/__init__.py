@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import logging
 
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI
 import pyodbc
 
 from wrapper_function.models import SessionMetrics
@@ -16,6 +16,9 @@ logger = logging.getLogger(__name__)
 async def insert_session_metrics(
     session_metrics: SessionMetrics
 ):
+    """Insert session metrics into the Azure SQL Database."""
+
+    # Extract data from the payload
     session_id = session_metrics.session_id
     saved_at = datetime.now()
     user_id = session_metrics.user_id
@@ -95,18 +98,20 @@ async def insert_session_metrics(
             "message": f"An unexpected error occurred: {e}"
         }
     finally:
+        # Ensure the connection is closed
         if conn:
-            conn.close() # Ensure the connection is closed
+            conn.close() 
 
 
 @app.get("/weekly-top5-attention-span")
 async def get_weekly_top5_attention_span():
+    """Get the top 5 users with the highest average attention span for the current week."""
+
     conn = None
     try:
         conn = pyodbc.connect(AZURE_SQL_DATABASE_CONN_STR)
         cursor = conn.cursor()
 
-        # Get top 5 users with highest attention span in the current week
         query = """
             SELECT TOP 5 
                 user_id,
@@ -131,14 +136,13 @@ async def get_weekly_top5_attention_span():
                 "user_id": row[0],
                 "username": row[1],
                 "avg_attention_span": round(float(row[2]), 1),
-                # "session_count": row[3]
             })
 
         logger.info(f"Successfully retrieved weekly top 5 attention span data. Found {len(top5_users)} users.")
 
-        # Align with SQL: week starts on Sunday and ends on Saturday
+        # Week starts on Sunday and ends on Saturday
         today = datetime.now()
-        days_since_sunday = (today.weekday() + 1) % 7  
+        days_since_sunday = (today.weekday() + 1) % 7 # Add 1 to adjust for Sunday as the first day of the week
         sunday = today - timedelta(days=days_since_sunday)
         saturday = sunday + timedelta(days=6)
 
